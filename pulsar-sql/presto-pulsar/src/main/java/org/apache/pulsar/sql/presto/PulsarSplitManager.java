@@ -173,7 +173,7 @@ public class PulsarSplitManager implements ConnectorSplitManager {
             int splitsForThisPartition = (splitRemainder > i) ? splitsPerPartition + 1 : splitsPerPartition;
             splits.addAll(
                     getSplitsForTopic(
-                            topicName.getPartition(predicatedPartitions.get(i)).getPersistenceNamingEncoding(),
+                            topicName.getPartition(predicatedPartitions.get(i)),
                             managedLedgerFactory,
                             splitsForThisPartition,
                             tableHandle,
@@ -242,7 +242,7 @@ public class PulsarSplitManager implements ConnectorSplitManager {
         ManagedLedgerFactory managedLedgerFactory = pulsarConnectorCache.getManagedLedgerFactory();
 
         return getSplitsForTopic(
-                topicName.getPersistenceNamingEncoding(),
+                topicName,
                 managedLedgerFactory,
                 numSplits,
                 tableHandle,
@@ -253,20 +253,21 @@ public class PulsarSplitManager implements ConnectorSplitManager {
     }
 
     @VisibleForTesting
-    Collection<PulsarSplit> getSplitsForTopic(String topicNamePersistenceEncoding,
-                                              ManagedLedgerFactory managedLedgerFactory,
-                                              int numSplits,
-                                              PulsarTableHandle tableHandle,
-                                              SchemaInfo schemaInfo, String tableName,
-                                              TupleDomain<ColumnHandle> tupleDomain,
-                                              OffloadPolicies offloadPolicies)
+    Collection<PulsarSplit> getSplitsForTopic(
+            TopicName topicName,
+            ManagedLedgerFactory managedLedgerFactory,
+            int numSplits,
+            PulsarTableHandle tableHandle,
+            SchemaInfo schemaInfo, String tableName,
+            TupleDomain<ColumnHandle> tupleDomain,
+            OffloadPolicies offloadPolicies)
             throws ManagedLedgerException, InterruptedException, IOException {
 
         ReadOnlyCursor readOnlyCursor = null;
         try {
-            NamespaceName namespace = TopicName.get(topicNamePersistenceEncoding).getNamespaceObject();
+            String topicNamePersistenceEncoding = topicName.getPersistenceNamingEncoding();
             ManagedLedgerConfig managedLedgerConfig = pulsarConnectorCache.getManagedLedgerConfig(
-                    namespace, offloadPolicies, pulsarConnectorConfig);
+                    topicName.getNamespaceObject(), offloadPolicies, pulsarConnectorConfig);
             readOnlyCursor = managedLedgerFactory.openReadOnlyCursor(
                     topicNamePersistenceEncoding,
                     PositionImpl.earliest, managedLedgerConfig);
